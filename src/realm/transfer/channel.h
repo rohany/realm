@@ -506,6 +506,32 @@ namespace Realm {
     typedef SequenceCache<&XferDes::update_bytes_read> ReadSequenceCache;
     typedef SequenceCache<&XferDes::update_bytes_write> WriteSequenceCache;
 
+    // TODO (rohany): Comment this.
+
+    // The next set of classes are handlers to inject logic into the execution
+    // lifetime of XferDes. They specifically introduced to enable minimal
+    // changes to the implementation of the XferDes lifecycle when integrating
+    // with a specialized Realm Subgraph engine.
+
+    // XferDesCompletionHandler provides hooks into when various stages of
+    // XferDes objects have been completed.
+    class XferDesCompletionHandler {
+    public:
+      virtual ~XferDesCompletionHandler() {}
+      // on_control_completion is called when the host-side control flow
+      // of an XferDes object has been completed. For CPU-driven copies
+      // like memcpy, this is called once all the necessary copies have been
+      // issued. For accelerator-driven copies, this is called once all the
+      // asynchronous work for the copy has been launched.
+      virtual void on_control_completion(XferDes* xd) {}
+      // on_async_completion is called when the asynchronous work for an
+      // XferDes object has finished and all effects are visible. 
+      virtual void on_async_completion(XferDes* xd) {}
+      // on_xd_completion is called once all work for an XferDes has
+      // completed and the XferDes object is ready to be destroyed.
+      virtual void on_xd_completion(XferDes* xd) = 0;
+    };
+
     size_t update_control_info(ReadSequenceCache *rseqcache);
 
     // a helper routine for individual XferDes implementations - tries to get
